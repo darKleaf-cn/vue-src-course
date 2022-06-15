@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Document</title>
+</head>
+
+<body>
+	<script>
+		const o = {
+			name: 'jsm',
+			age: 19,
+			gender: '男'
+		}
+
+		function defineReactive(target, key, value, enumerable) {
+			Object.defineProperty(target, key, {
+				configurable: true,
+				enumerable: !!enumerable,
+				get() {
+					return value;
+				},
+				set(newVal) {
+					value = newVal;
+				}
+			})
+		}
+
+		const keys = o.keys();
+		for (let key of keys) {
+			defineReactive(o, key, o[key], true);
+		}
+	</script>
+</body>
+
+</html>

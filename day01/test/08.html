@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Document</title>
+</head>
+
+<body>
+	<!-- 写模板 -->
+	<div id="root">
+		<p>{{ name.firstName }}</p>
+	</div>
+
+	<script>
+		function parseObj(obj, path) {
+			const paths = path.split('.');
+			let o = obj;
+			let prop;
+			while (prop = paths.shift()) {
+				o = o[prop];
+			}
+			return o;
+		}
+
+		function compiler(node, data) {
+			for (let item of node.childNodes) {
+				if (item.nodeType === 3) {
+					let txt = item.nodeValue;
+					item.nodeValue = txt.replace(/\{\{(.+?)\}\}/, function (_, g) {
+						return parseObj(data, g.trim());
+					})
+				} else if (item.nodeType === 1) {
+					compiler(item, data);
+				}
+			}
+		}
+
+		function Vue(options) {
+			this._el = options.el;
+			this._data = options.data;
+			this._template = document.querySelector(this._el);
+			this.render();
+		}
+		Vue.prototype.render = function () {
+			const node = this._template.cloneNode(true);
+			compiler(node, this._data);
+			this._template.appendChild(node);
+		}
+
+		const app = new Vue({
+			el: '#root',
+			data: {
+				name: {
+					firstName: '张',
+					lastName: '三峰'
+				}
+			}
+		})
+	</script>
+</body>
+
+</html>

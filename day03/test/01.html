@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Document</title>
+</head>
+
+<body>
+	<div id="root">
+		<div class="c1">
+			<div title="tt1" id="id">{{ name }}</div>
+			<div title="tt2">{{ age }}</div>
+			<div title="tt3">{{ gender }}</div>
+			<ul>
+				<li>1</li>
+				<li>2</li>
+				<li>3</li>
+			</ul>
+		</div>
+	</div>
+	<script>
+		/** 虚拟 DOM 构造函数 */
+		class VNode {
+			constructor(tag, data, value, type) {
+				this.tag = tag && tag.toLowerCase();
+				this.data = data;
+				this.value = value;
+				this.type = type;
+				this.children = [];
+			}
+
+			appendChild(vnode) {
+				this.children.push(vnode);
+			}
+		}
+
+		function getVNode(node) {
+			const type = node.nodeType;
+			let _node;
+			if (type === 1) {
+				const name = node.nodeName;
+				const attrs = node.attributes;
+				const _attrObj = {};
+				for (let item of attrs) {
+					_attrObj[item.nodeName] = item.nodeValue;
+				}
+				const children = node.childNodes;
+				_node = new VNode(node.nodeName, _attrObj, undefined, type);
+				for (let item of children) {
+					_node.appendChild(getVNode(item));
+				}
+			} else if (type === 3) {
+				_node = new VNode(undefined, undefined, node.nodeValue, type);
+			}
+
+			return _node;
+		}
+
+		function parseVNode(vnode) {
+			const type = vnode.type;
+			let _node = null;
+			if (type === 1) {
+				const dom = document.createElement(vnode.tag);
+				Object.keys(vnode.data).forEach((key) => {
+					dom.setAttribute(key, vnode.data[key])
+				});
+				for (let item of vnode.children) {
+					dom.appendChild(parseVNode(item));
+				};
+				return dom;
+			} else if (type === 3) {
+				return document.createTextNode(vnode.value);
+			}
+		}
+
+		function getValueByPath(obj, path) {
+			const paths = path.split('.');
+			let o = obj;
+			let front;
+			while (front = paths.shift()) {
+				o = o[front];
+			};
+			return o;
+		}
+
+		function combine(vnode, data) {
+			const type = vnode.type;
+			if (type === 3) {
+				let value = vnode.value;
+				value = value.replace(/\{\{(.+?)\}\}/g, function (_, g) {
+					return getValueByPath(data, g.trim());
+				})
+				console.log(value)
+				return new VNode(vnode.tag, vnode.data, value, vnode.type);
+			} else if (type === 1) {
+				const _vnode = new VNode(vnode.tag, vnode.data, vnode.value, vnode.type)
+				for (let item of vnode.children) {
+					_vnode.appendChild(combine(item, data));
+				}
+				return _vnode;
+			}
+		}
+
+		function Vue(options) {
+			this._data = options.data;
+			this._template = document.querySelector(options.el);
+			this._parent = this._template.parentNode;
+
+			this.mount();
+		}
+
+		Vue.prototype.mount = function () {
+			this.render = this.createRenderFn();
+			this.mountComponent();
+		}
+
+		Vue.prototype.mountComponent = function() {
+			let mount = () => {
+				this.update(this.render());
+			};
+			mount.call(this);
+		}
+
+		Vue.prototype.createRenderFn = function() {
+			const ast = getVNode(this._template);
+			return function render() {
+				let _tmp = combine(ast, this._data);
+				console.log(_tmp)
+				return _tmp;
+			}
+		}
+
+		Vue.prototype.update = function(vnode) {
+			const realDOM = parseVNode(vnode);
+			console.log(vnode)
+			this._parent.replaceChild(realDOM, document.querySelector('#root'))
+		}
+
+		let app = new Vue({
+			el: '#root',
+			data: {
+				name: '张三',
+				age: 19,
+				gender: '难'
+			}
+		});
+
+	</script>
+</body>
+
+</html>
